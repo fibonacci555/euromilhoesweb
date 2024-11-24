@@ -1,0 +1,464 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <!-- Cabeçalho ajustado -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euromilhões Predict AI</title>
+    <style>
+    body {
+    background-image: url('static/bg.jpg');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    font-family: monospace;
+    color: #c0c5ce;
+}
+
+.terminal {
+    background-color: #2b303b;
+    color: #c0c5ce;
+    width: 90%;
+    max-width: 1000px;
+    height: 90vh;
+    max-height: 750px;
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 2px solid #4f5b66;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    font-size: 1em;
+    background-color: #4f5b66;
+    border-radius: 5px 5px 0 0;
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.terminal-header .buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.terminal-header .button {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    position: relative;
+}
+
+.terminal-header .button:nth-child(1) {
+    background-color: #ff5f56;
+}
+
+.terminal-header .button:nth-child(2) {
+    background-color: #ffbd2e;
+}
+
+.terminal-header .button:nth-child(3) {
+    background-color: #27c93f;
+}
+
+.terminal-header .button:hover::after {
+    content: attr(data-symbol);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    color: #000;
+}
+
+.terminal-header .button:nth-child(1):hover::after {
+    content: "\2715"; /* X symbol */
+}
+
+.terminal-header .button:nth-child(2):hover::after {
+    content: "-"; /* Minimize symbol */
+}
+
+.terminal-header .button:nth-child(3):hover::after {
+    content: "\25A1"; /* Maximize symbol */
+}
+
+.terminal-body {
+    padding: 10px;
+    margin-top: 10px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.line {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 1em;
+    flex-wrap: wrap;
+    word-break: break-word;
+}
+
+.prompt {
+    color: #8fa1b3;
+    margin-right: 5px;
+    flex-shrink: 0;
+}
+
+.input-line {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+input {
+    background: none;
+    border: none;
+    color: inherit;
+    width: auto;
+    flex-grow: 1;
+    outline: none;
+    font-size: 1em;
+    overflow-wrap: break-word;
+}
+
+.ascii-art {
+    white-space: pre;
+    color: #00ff00; /* Cor verde */
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.progress-bar {
+    background-color: #4f5b66;
+    width: 100%;
+    height: 20px;
+    margin-top: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background-color: #00ff00;
+    height: 100%;
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+/* Media Queries para dispositivos móveis */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
+
+    .terminal {
+        width: 95%;
+        height: 95vh;
+    }
+
+    .terminal-header {
+        font-size: 0.9em;
+    }
+
+    .line {
+        font-size: 0.9em;
+    }
+
+    .ascii-art {
+        font-size: 0.7em;
+    }
+
+    input {
+        font-size: 0.9em;
+    }
+
+    .terminal-header .button {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        font-size: 12px;
+    }
+
+    .terminal-header {
+        font-size: 0.8em;
+    }
+
+    .line {
+        font-size: 0.8em;
+    }
+
+    .ascii-art {
+        font-size: 0.6em;
+    }
+
+    input {
+        font-size: 0.8em;
+    }
+
+    .terminal-header .button {
+        width: 8px;
+        height: 8px;
+    }
+}
+</style>
+</head>
+
+<body>
+    <div class="terminal">
+        <div class="terminal-header">
+            <div class="buttons">
+                <span class="button" data-symbol=""></span>
+                <span class="button" data-symbol=""></span>
+                <span class="button" data-symbol=""></span>
+            </div>
+            
+            Euromilhões Predict AI
+            <div>Desenvolvido por <a href="https://joao-branco-portfolio.vercel.app/" style="color: #00ff00;" target="_blank">4rentnot2sale</a></div>
+        </div>
+        <div class="terminal-body" id="terminal-body">
+            <!-- O conteúdo será inserido dinamicamente via JavaScript -->
+        </div>
+    </div>
+
+    <!-- Inclua o token CSRF e o último resultado -->
+    <script>
+        var csrftoken = '{{ csrf_token }}';
+        var lastNumbers = '{{ last_numbers }}';
+    </script>
+
+    <script>
+        const terminalBody = document.getElementById('terminal-body');
+
+        // ASCII art
+        const asciiArt = `
+     888888888                         888b     d888 d8b 888 888                                 
+    888                                8888b   d8888 Y8P 888 888                                 
+    888                                88888b.d88888     888 888                                 
+    8888888   888  888 888d888 .d88b.  888Y88888P888 888 888 88888b.   .d88b.   .d88b.  .d8888b  
+    888       888  888 888P"  d88""88b 888 Y888P 888 888 888 888 "88b d88""88b d8P  Y8b 88K      
+    888       888  888 888    888  888 888  Y8P  888 888 888 888  888 888  888 88888888 "Y8888b. 
+    888       Y88b 888 888    Y88..88P 888   "   888 888 888 888  888 Y88..88P Y8b.          X88 
+    8888888888 "Y88888 888     "Y88P"  888       888 888 888 888  888  "Y88P"   "Y8888   88888P' 
+
+                                                                                                   
+                                                                                                   
+                                                                                                   
+    8888888b.                       888 d8b          888                d8888 8888888            
+    888   Y88b                      888 Y8P          888               d88888   888              
+    888    888                      888              888              d88P888   888              
+    888   d88P 888d888 .d88b.   .d88888 888  .d8888b 888888          d88P 888   888              
+    8888888P"  888P"  d8P  Y8b d88" 888 888 d88P"    888            d88P  888   888              
+    888        888    88888888 888  888 888 888      888           d88P   888   888              
+    888        888    Y8b.     Y88b 888 888 Y88b.    Y88b.        d8888888888   888              
+    888        888     "Y8888   "Y88888 888  "Y8888P  "Y888      d88P     888 8888888            
+
+                                                                                                   
+                                                                                                   
+                                                                                                   
+    `;
+
+        // Mensagem adicional
+        const additionalMessage = `
+Utilizamos inteligência artificial para gerar os novos números.
+Cada resultado é gerado para cada utilizador com base nos resultados de 2009 até à data (2024).
+`;
+
+        // Variáveis de estado
+        let state = 'ready_to_start';
+        let predictionData = null;
+        let progressIntervalID = null; // Armazena o ID do intervalo da barra de progresso
+
+        // Função para adicionar texto ao terminal
+        function addLine(text, options = {}) {
+            const lines = text.split('\n');
+            lines.forEach(lineText => {
+                const line = document.createElement('div');
+                line.classList.add('line');
+                if (options.className) {
+                    line.classList.add(options.className);
+                }
+                if (options.style) {
+                    line.style.cssText = options.style;
+                }
+                line.textContent = lineText;
+                terminalBody.appendChild(line);
+            });
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        // Função para adicionar o prompt e input
+        function addInputLine(promptText = 'possivel_vencedor@europredict:~$ ') {
+            const line = document.createElement('div');
+            line.classList.add('line', 'input-line');
+
+            const prompt = document.createElement('span');
+            prompt.classList.add('prompt');
+            prompt.textContent = promptText;
+            line.appendChild(prompt);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            line.appendChild(input);
+
+            terminalBody.appendChild(line);
+            input.focus();
+
+            // Evento para capturar o Enter
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    const value = input.value;
+                    input.disabled = true;
+                    input.style.opacity = '1';
+                    processCommand(value.trim());
+                }
+            });
+        }
+
+        // Função para processar o comando inserido pelo usuário
+        function processCommand(command) {
+            if (state === 'ready_to_start') {
+                // O usuário está pronto para iniciar a previsão
+                addLine('Ok, começou a gerar.');
+                addLine('Iniciando previsão...');
+                // Iniciar a barra de progresso
+                simulateProgressBar();
+                // Enviar requisição ao servidor
+                getPrediction();
+                state = 'processing';
+            } else if (state === 'finished') {
+                // Permitir que o usuário reinicie o processo
+                addLine('Deseja realizar uma nova previsão? (s/n)');
+                addInputLine();
+                state = 'awaiting_restart';
+            } else if (state === 'awaiting_restart') {
+                if (command.toLowerCase() === 's') {
+                    state = 'ready_to_start';
+                    addLine('Pressione Enter para iniciar a previsão.');
+                    addInputLine();
+                } else {
+                    addLine('Processo encerrado.');
+                }
+            }
+        }
+
+        // Função para simular a barra de progresso
+        function simulateProgressBar() {
+            // Criar a barra de progresso
+            const progressBar = document.createElement('div');
+            progressBar.classList.add('progress-bar');
+
+            const progressFill = document.createElement('div');
+            progressFill.classList.add('progress-fill');
+            progressBar.appendChild(progressFill);
+
+            terminalBody.appendChild(progressBar);
+
+            let width = 0;
+            const totalTime = 4 * 60 * 1000; // 4 minutos em milissegundos
+            const intervalTime = 500; // Atualizar a cada 0.5 segundos
+            const increment = (intervalTime / totalTime) * 100; // Incremento percentual por intervalo
+
+            progressIntervalID = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(progressIntervalID);
+                    terminalBody.removeChild(progressBar);
+                    if (predictionData) {
+                        displayPrediction(predictionData);
+                    }
+                } else {
+                    width += increment;
+                    progressFill.style.width = width + '%';
+                }
+            }, intervalTime);
+        }
+
+        // Função para obter a previsão do servidor
+        function getPrediction() {
+            fetch('/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({}),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    predictionData = data;
+                    if (progressIntervalID) {
+                        clearInterval(progressIntervalID); // Cancelar a atualização contínua da barra
+                        const progressFill = document.querySelector('.progress-fill');
+                        if (progressFill) {
+                            progressFill.style.width = '100%'; // Avançar para 100%
+                            // Aguardar a transição da barra de progresso antes de exibir os resultados
+                            setTimeout(() => {
+                                const progressBar = document.querySelector('.progress-bar');
+                                if (progressBar) {
+                                    terminalBody.removeChild(progressBar);
+                                }
+                                displayPrediction(predictionData);
+                            }, 500); // Tempo suficiente para a animação
+                        }
+                    }
+                })
+                .catch(error => {
+                    addLine('Ocorreu um erro ao obter a previsão.');
+                    console.error(error);
+                });
+        }
+
+        // Função para exibir a previsão
+        function displayPrediction(data) {
+            // Ajuste conforme o formato dos dados retornados pelo servidor
+            // Supondo que o servidor retorne {'prediction': {'Números Principais': [...], 'Estrelas da Sorte': [...]}}
+
+            const prediction = data.prediction || data.predictions[0]; // Ajuste conforme necessário
+
+            addLine('Previsão concluída:');
+            addLine(`Números Principais: ${prediction['Números Principais'].join(', ')}`);
+            addLine(`Estrelas da Sorte: ${prediction['Estrelas da Sorte'].join(', ')}`);
+            addLine('Acabou de gerar os números.');
+            state = 'finished';
+            processCommand('');
+        }
+
+        // Iniciar o terminal ao carregar a página
+        window.onload = function () {
+            // Exibir o ASCII art
+            addLine(asciiArt, { className: 'ascii-art' });
+            // Exibir a mensagem adicional
+            addLine(additionalMessage);
+            // Exibir o último resultado
+            addLine(`Último resultado: ${lastNumbers}`);
+            // Prompt para iniciar a previsão
+            addLine('Pressione Enter para iniciar a previsão.');
+            addInputLine();
+            state = 'ready_to_start';
+        };
+    </script>
+</body>
+
+</html>
